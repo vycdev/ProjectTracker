@@ -9,3 +9,8 @@ ReactDOM.render(
     </React.StrictMode>,
     document.getElementById("root")
 );
+
+const container = document.getElementById("root");
+// @ts-ignore ReactDOM.unstable_createRoot(root).render(<App />);
+const root = ReactDOM.createRoot(container);
+root.render(<App />);
