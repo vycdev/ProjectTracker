@@ -14,3 +14,14 @@
 .infoMessageerror{
   color: red;
 }
+
+
+.square_active {
+  width: 25px;
+  height: 25px;
+}
+
+.square_inactive {
+  width: 25px;
+  height: 25px;
+}

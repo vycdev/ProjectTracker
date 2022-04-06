@@ -3,6 +3,7 @@ import "./App.css";
 
 type HeaderProps = {
     noOfDays: number;
+    data: OneDayProgress[];
 };
 
 type OneDayProgress = {
@@ -11,7 +12,7 @@ type OneDayProgress = {
     date?: number; // unix timestamp;
     startDate?: number;
     endDate?: number;
-    color: string;
+    color?: string;
 };
 
 const daysInMonth = (month: number, year: number) => {
@@ -32,26 +33,55 @@ const TableHeader = (props: HeaderProps) => {
 
     return <tr>{columns}</tr>;
 };
-
-const Table = (props: HeaderProps) => {
-    const [data, setData] = useState([]);
-
-    useEffect(() => {
-        setData(JSON.parse(window.localStorage.getItem("data") || "[]"));
-
-        console.log(data);
-    }, [props.noOfDays]);
-
+const Square = (props: { active: boolean; color: string }) => {
     return (
-        <table>
-            <thead>
-                <TableHeader noOfDays={props.noOfDays}></TableHeader>
-            </thead>
-        </table>
+        <div
+            className={`square_${props.active ? "active" : "inactive"}`}
+            style={{
+                backgroundColor: props.active ? `#${props.color}` : "",
+                border: `1px solid #${props.color}`,
+            }}
+        ></div>
     );
 };
 
-const AddProject = () => {
+const TableBody = (props: HeaderProps) => {
+    // split array in multiple arrays of projects with the same name as well as the empty periods
+    const [rows, setRows] = useState<JSX.Element[][]>([]);
+
+    useEffect(() => {
+        let row = [];
+    });
+
+    return <tr></tr>;
+};
+const Table = (props: HeaderProps) => {
+    return (
+        <>
+            <table>
+                <thead>
+                    <TableHeader
+                        noOfDays={props.noOfDays}
+                        data={props.data}
+                    ></TableHeader>
+                </thead>
+                <tbody>
+                    <TableBody
+                        data={props.data}
+                        noOfDays={props.noOfDays}
+                    ></TableBody>
+                </tbody>
+            </table>
+            {JSON.stringify(props.data)}
+        </>
+    );
+};
+
+type AddProjectProps = {
+    parentCallback: (data: OneDayProgress[]) => void;
+};
+
+const AddProject = (props: AddProjectProps) => {
     const [projectName, setProjectName] = useState<string>("");
     const [projectColor, setProjectColor] = useState<string>("");
     const [vacationStart, setVacationStart] = useState<string>("");
@@ -69,18 +99,6 @@ const AddProject = () => {
             window.localStorage.getItem("data") || ""
         ) as Array<OneDayProgress>;
 
-        // check if project already exists
-        // check if the name is empty
-        // check the type
-        // validate vacation start and vacation end
-        console.log(
-            projectName,
-            projectColor,
-            vacationStart,
-            vacationEnd,
-            projectType
-        );
-
         if (projectType === "progress") {
             let projectExists = false;
             if (!projectName) {
@@ -95,12 +113,6 @@ const AddProject = () => {
                 setInfoMessageType("error");
                 setInfoMessage("Project name already exists.");
                 return;
-            }
-            if (!projectColor) {
-                var randomColor = Math.floor(Math.random() * 16777215).toString(
-                    16
-                );
-                setProjectColor(randomColor);
             }
         } else {
             if (!vacationStart) {
@@ -133,6 +145,11 @@ const AddProject = () => {
             }
         }
         if (projectType === "progress") {
+            var randomColor = Math.floor(Math.random() * 16777215).toString(16);
+            if (!projectColor) {
+                setProjectColor(randomColor);
+            }
+
             window.localStorage.setItem(
                 "data",
                 JSON.stringify([
@@ -140,10 +157,18 @@ const AddProject = () => {
                     {
                         name: projectName,
                         type: projectType,
-                        color: projectColor,
+                        color: projectColor ? projectColor : randomColor,
                     },
                 ])
             );
+            props.parentCallback([
+                ...data,
+                {
+                    name: projectName,
+                    type: projectType,
+                    color: projectColor ? projectColor : randomColor,
+                },
+            ]);
         } else {
             window.localStorage.setItem(
                 "data",
@@ -152,10 +177,18 @@ const AddProject = () => {
                     {
                         type: projectType,
                         startDate: new Date(vacationStart).getTime(),
-                        startEnd: new Date(vacationEnd).getTime(),
+                        endDate: new Date(vacationEnd).getTime(),
                     },
                 ])
             );
+            props.parentCallback([
+                ...data,
+                {
+                    type: projectType as "vacation" | "progress",
+                    startDate: new Date(vacationStart).getTime(),
+                    endDate: new Date(vacationEnd).getTime(),
+                },
+            ]);
         }
 
         setInfoMessage("Project added successfully.");
@@ -219,11 +252,6 @@ const AddProject = () => {
 const CopyDataToClipboard = () => {
     const [copied, setCopied] = useState(false);
 
-    useEffect(() => {
-        const data = window.localStorage.getItem("data");
-        if (!data) window.localStorage.setItem("data", JSON.stringify([]));
-    });
-
     const copyData = () => {
         const Data = window.localStorage.getItem("data");
         navigator.clipboard.writeText(JSON.stringify(Data));
@@ -245,17 +273,42 @@ const CopyDataToClipboard = () => {
 };
 
 const App = () => {
+    const [data, setData] = useState<OneDayProgress[]>([]);
+
+    useEffect(() => {
+        const data = window.localStorage.getItem("data");
+        if (!data) window.localStorage.setItem("data", JSON.stringify([]));
+        setData(
+            JSON.parse(
+                window.localStorage.getItem("data") || "[]"
+            ) as OneDayProgress[]
+        );
+
+        console.log(
+            JSON.parse(
+                window.localStorage.getItem("data") || "[]"
+            ) as OneDayProgress[]
+        );
+    }, []);
+
+    const updateData = (d: OneDayProgress[]) => {
+        setData(d);
+        window.localStorage.setItem("data", JSON.stringify(d));
+    };
+
     return (
         <div className="App">
-            <Table noOfDays={31}></Table>
+            <Table noOfDays={31} data={data}></Table>
             <div className="PageHeader">
-                <AddProject></AddProject>
+                <AddProject parentCallback={updateData}></AddProject>
                 <CopyDataToClipboard></CopyDataToClipboard>
             </div>
             <h6>
                 Warning, deleting cookies will delete all of the data in here,
                 so keep that in mind.
             </h6>
+            <Square active={true} color="000"></Square>
+            <Square active={false} color="000"></Square>
         </div>
     );
 };
