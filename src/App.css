@@ -1,0 +1,16 @@
+.PageHeader {
+  display: inline-flex;
+  column-gap: 5px;
+}
+
+.AddData {
+  display: inline-flex;
+  column-gap: 5px;
+}
+
+.infoMessagesuccess {
+  color: green;
+}
+.infoMessageerror{
+  color: red;
+}
