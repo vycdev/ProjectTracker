@@ -38,10 +38,49 @@ const TableHeader = (props: HeaderProps) => {
     return <tr>{columns}</tr>;
 };
 const Square = (
-    props: AddProjectProps & { active: boolean; color: string }
+    props: HeaderProps &
+        AddProjectProps & {
+            active: boolean;
+            color: string;
+            date: string;
+            projectName: string;
+        }
 ) => {
+    const activateSquare = () => {
+        const data = props.data;
+        let index = 0;
+        while (index < data.length) {
+            if (
+                data[index]?.name === props.projectName &&
+                new Date(data[index]?.date || 0).getFullYear() ===
+                    new Date(props.date || 0).getFullYear() &&
+                new Date(data[index]?.date || 0).getMonth() ===
+                    new Date(props.date || 0).getMonth() &&
+                new Date(data[index]?.date || 0).getDate() ===
+                    new Date(props.date || 0).getDate()
+            ) {
+                break;
+            }
+            index++;
+        }
+        if (props.active) {
+            const newData = data.filter((v, i) => i !== index);
+            props.parentCallback(newData);
+        } else {
+            const newData = [
+                ...data,
+                {
+                    name: props.projectName,
+                    date: new Date(props.date).getTime(),
+                    type: "progress",
+                },
+            ] as OneDayProgress[];
+            props.parentCallback(newData);
+        }
+    };
     return (
         <div
+            onClick={activateSquare}
             className={`square_${props.active ? "active" : "inactive"}`}
             style={{
                 backgroundColor: props.active ? `#${props.color}` : "",
@@ -51,32 +90,86 @@ const Square = (
     );
 };
 
-const TableBody = (props: HeaderProps & AddProjectProps) => {
-    const [rows, setRows] = useState<JSX.Element[]>([<tr></tr>]);
+const matchDates = (
+    year: number,
+    month: number,
+    day: number,
+    dates: string[]
+) => {
+    if (!dates) return false;
+    let match = false;
+    for (let date of dates) {
+        if (
+            year === new Date(date).getFullYear() &&
+            month === new Date(date).getMonth() &&
+            day === new Date(date).getDate()
+        ) {
+            match = true;
+        }
+    }
+    return match;
+};
+
+const TableBody = (
+    props: HeaderProps & AddProjectProps & { month: number; year: number }
+) => {
+    const [rows, setRows] = useState<JSX.Element[]>([
+        <tr key={"emptytr"}></tr>,
+    ]);
 
     useEffect(() => {
-        const projectNames = new Map();
+        const projectColors = new Map();
+        const projectDates = new Map();
         const vacations = [];
 
         for (let progress of props.data) {
             if (progress.type === "progress" && progress.name) {
-                if (!projectNames.has(progress.name))
-                    projectNames.set(progress.name, progress.color);
+                if (!projectColors.has(progress.name))
+                    projectColors.set(progress.name, progress.color);
             } else {
                 vacations.push([progress.startDate, progress.endDate]);
+            }
+        }
+        for (let progress of props.data) {
+            if (progress.type === "progress") {
+                if (!projectDates.has(progress.name)) {
+                    if (progress.date)
+                        projectDates.set(progress.name, [progress.date]);
+                } else {
+                    const dates = projectDates.get(progress.name);
+                    projectDates.delete(progress.name);
+                    projectDates.set(progress.name, [...dates, progress.date]);
+                }
             }
         }
         let rowees: JSX.Element[][] = [];
         let rowIndex = 0;
 
-        projectNames.forEach((value, key) => {
+        projectColors.forEach((value, key) => {
             let row = [<td key={key}>{key}</td>];
+            const dates = projectDates.get(key);
+            console.log("dates", dates);
+
             for (let i = 1; i <= props.noOfDays; i++) {
                 row.push(
                     <td key={`${key}${rowIndex}${i}`}>
                         <Square
-                            active={false}
+                            key={`square${key}${rowIndex}${i}`}
+                            active={matchDates(
+                                props.year,
+                                props.month - 1,
+                                i,
+                                dates
+                            )}
+                            projectName={key}
+                            data={props.data}
+                            noOfDays={props.noOfDays}
                             color={value}
+                            date={new Date(
+                                props.year,
+                                props.month - 1,
+                                i
+                            ).toISOString()}
                             parentCallback={props.parentCallback}
                         ></Square>
                     </td>
@@ -89,14 +182,22 @@ const TableBody = (props: HeaderProps & AddProjectProps) => {
 
         setRows(rowees.map((i, ind) => <tr key={ind + "rowee"}>{i}</tr>));
 
-        console.log(projectNames);
+        console.log(projectColors);
         console.log(vacations);
         console.log("rowees", rowees);
-    }, [props.data, props.noOfDays, props.parentCallback]);
+    }, [
+        props.data,
+        props.noOfDays,
+        props.parentCallback,
+        props.month,
+        props.year,
+    ]);
 
-    return <>{rows} </>;
+    return <>{rows}</>;
 };
-const Table = (props: HeaderProps & AddProjectProps) => {
+const Table = (
+    props: HeaderProps & AddProjectProps & { month: number; year: number }
+) => {
     return (
         <>
             <table>
@@ -108,6 +209,8 @@ const Table = (props: HeaderProps & AddProjectProps) => {
                 </thead>
                 <tbody>
                     <TableBody
+                        month={props.month}
+                        year={props.year}
                         data={props.data}
                         noOfDays={props.noOfDays}
                         parentCallback={props.parentCallback}
@@ -214,7 +317,10 @@ const AddProject = (props: AddProjectProps) => {
             ]);
         }
 
-        setInfoMessage("Project added successfully.");
+        if (projectType === "progress")
+            setInfoMessage("Project added successfully.");
+        else setInfoMessage("Period added successfully.");
+
         setInfoMessageType("success");
 
         setTimeout(() => {
@@ -297,6 +403,8 @@ const CopyDataToClipboard = () => {
 
 const App = () => {
     const [data, setData] = useState<OneDayProgress[]>([]);
+    const [year, setYear] = useState(new Date().getFullYear());
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
 
     useEffect(() => {
         const data = window.localStorage.getItem("data");
@@ -319,10 +427,34 @@ const App = () => {
         window.localStorage.setItem("data", JSON.stringify(d));
     };
 
+    const incrementMonth = () => {
+        if (month === 12) {
+            setMonth(1);
+            setYear(year + 1);
+        } else {
+            setMonth(month + 1);
+        }
+    };
+    const decrementMonth = () => {
+        if (month === 1) {
+            setMonth(12);
+            setYear(year - 1);
+        } else {
+            setMonth(month - 1);
+        }
+    };
+
     return (
         <div className="App">
+            <div>
+                <div>{new Date(year, month, 0).toLocaleDateString()}</div>
+                <button onClick={decrementMonth}>Previous Month</button>
+                <button onClick={incrementMonth}>Next Month</button>
+            </div>
             <Table
-                noOfDays={31}
+                month={month}
+                year={year}
+                noOfDays={daysInMonth(month, year)}
                 data={data}
                 parentCallback={updateData}
             ></Table>
