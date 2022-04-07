@@ -15,6 +15,10 @@ type OneDayProgress = {
     color?: string;
 };
 
+// 3 hours 20 minutes
+// Add names to vacationss
+// ADD a way to delete projects and vacations
+
 const daysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();
 };
@@ -33,7 +37,9 @@ const TableHeader = (props: HeaderProps) => {
 
     return <tr>{columns}</tr>;
 };
-const Square = (props: { active: boolean; color: string }) => {
+const Square = (
+    props: AddProjectProps & { active: boolean; color: string }
+) => {
     return (
         <div
             className={`square_${props.active ? "active" : "inactive"}`}
@@ -45,17 +51,52 @@ const Square = (props: { active: boolean; color: string }) => {
     );
 };
 
-const TableBody = (props: HeaderProps) => {
-    // split array in multiple arrays of projects with the same name as well as the empty periods
-    const [rows, setRows] = useState<JSX.Element[][]>([]);
+const TableBody = (props: HeaderProps & AddProjectProps) => {
+    const [rows, setRows] = useState<JSX.Element[]>([<tr></tr>]);
 
     useEffect(() => {
-        let row = [];
-    });
+        const projectNames = new Map();
+        const vacations = [];
 
-    return <tr></tr>;
+        for (let progress of props.data) {
+            if (progress.type === "progress" && progress.name) {
+                if (!projectNames.has(progress.name))
+                    projectNames.set(progress.name, progress.color);
+            } else {
+                vacations.push([progress.startDate, progress.endDate]);
+            }
+        }
+        let rowees: JSX.Element[][] = [];
+        let rowIndex = 0;
+
+        projectNames.forEach((value, key) => {
+            let row = [<td key={key}>{key}</td>];
+            for (let i = 1; i <= props.noOfDays; i++) {
+                row.push(
+                    <td key={`${key}${rowIndex}${i}`}>
+                        <Square
+                            active={false}
+                            color={value}
+                            parentCallback={props.parentCallback}
+                        ></Square>
+                    </td>
+                );
+            }
+            rowees[rowIndex] = row;
+
+            rowIndex++;
+        });
+
+        setRows(rowees.map((i, ind) => <tr key={ind + "rowee"}>{i}</tr>));
+
+        console.log(projectNames);
+        console.log(vacations);
+        console.log("rowees", rowees);
+    }, [props.data, props.noOfDays, props.parentCallback]);
+
+    return <>{rows} </>;
 };
-const Table = (props: HeaderProps) => {
+const Table = (props: HeaderProps & AddProjectProps) => {
     return (
         <>
             <table>
@@ -69,6 +110,7 @@ const Table = (props: HeaderProps) => {
                     <TableBody
                         data={props.data}
                         noOfDays={props.noOfDays}
+                        parentCallback={props.parentCallback}
                     ></TableBody>
                 </tbody>
             </table>
@@ -81,6 +123,8 @@ type AddProjectProps = {
     parentCallback: (data: OneDayProgress[]) => void;
 };
 
+const randomColor = () => Math.floor(Math.random() * 16777215).toString(16);
+
 const AddProject = (props: AddProjectProps) => {
     const [projectName, setProjectName] = useState<string>("");
     const [projectColor, setProjectColor] = useState<string>("");
@@ -92,8 +136,6 @@ const AddProject = (props: AddProjectProps) => {
         "success"
     );
 
-    useEffect(() => {}, []);
-
     const addProject = () => {
         const data = JSON.parse(
             window.localStorage.getItem("data") || ""
@@ -104,6 +146,13 @@ const AddProject = (props: AddProjectProps) => {
             if (!projectName) {
                 setInfoMessageType("error");
                 setInfoMessage("Project name cannot be empty.");
+                return;
+            }
+            if (projectName.length > 25) {
+                setInfoMessageType("error");
+                setInfoMessage(
+                    "Project name cannot be more than 25 characters long."
+                );
                 return;
             }
             for (let i of data) {
@@ -145,42 +194,16 @@ const AddProject = (props: AddProjectProps) => {
             }
         }
         if (projectType === "progress") {
-            var randomColor = Math.floor(Math.random() * 16777215).toString(16);
-            if (!projectColor) {
-                setProjectColor(randomColor);
-            }
-
-            window.localStorage.setItem(
-                "data",
-                JSON.stringify([
-                    ...data,
-                    {
-                        name: projectName,
-                        type: projectType,
-                        color: projectColor ? projectColor : randomColor,
-                    },
-                ])
-            );
+            setProjectColor(randomColor());
             props.parentCallback([
                 ...data,
                 {
                     name: projectName,
                     type: projectType,
-                    color: projectColor ? projectColor : randomColor,
+                    color: projectColor ? projectColor : randomColor(),
                 },
             ]);
         } else {
-            window.localStorage.setItem(
-                "data",
-                JSON.stringify([
-                    ...data,
-                    {
-                        type: projectType,
-                        startDate: new Date(vacationStart).getTime(),
-                        endDate: new Date(vacationEnd).getTime(),
-                    },
-                ])
-            );
             props.parentCallback([
                 ...data,
                 {
@@ -298,7 +321,11 @@ const App = () => {
 
     return (
         <div className="App">
-            <Table noOfDays={31} data={data}></Table>
+            <Table
+                noOfDays={31}
+                data={data}
+                parentCallback={updateData}
+            ></Table>
             <div className="PageHeader">
                 <AddProject parentCallback={updateData}></AddProject>
                 <CopyDataToClipboard></CopyDataToClipboard>
@@ -307,8 +334,6 @@ const App = () => {
                 Warning, deleting cookies will delete all of the data in here,
                 so keep that in mind.
             </h6>
-            <Square active={true} color="000"></Square>
-            <Square active={false} color="000"></Square>
         </div>
     );
 };
