@@ -43,6 +43,39 @@ const Square = (
         }
 ) => {
     const [isInactivePeriod, setIsInactivePeriod] = useState(false);
+
+    useEffect(() => {
+        const data = props.data;
+        const inactivePeriods = props.data.filter((v) => v.type === "vacation");
+        setIsInactivePeriod(false);
+
+        let index = 0;
+        while (index < data.length) {
+            if (
+                data[index]?.name === props.projectName &&
+                new Date(data[index]?.date || 0).getFullYear() ===
+                    new Date(props.date || 0).getFullYear() &&
+                new Date(data[index]?.date || 0).getMonth() ===
+                    new Date(props.date || 0).getMonth() &&
+                new Date(data[index]?.date || 0).getDate() ===
+                    new Date(props.date || 0).getDate()
+            ) {
+                break;
+            }
+            index++;
+        }
+
+        for (let period of inactivePeriods) {
+            if (period.startDate && period.endDate)
+                if (
+                    new Date(period.startDate) <= new Date(props.date) &&
+                    new Date(period.endDate) >= new Date(props.date)
+                ) {
+                    setIsInactivePeriod(true);
+                }
+        }
+    }, [props.date, props.projectName, props.data]);
+
     const activateSquare = () => {
         const data = props.data;
         let index = 0;
@@ -60,6 +93,7 @@ const Square = (
             }
             index++;
         }
+
         if (props.active) {
             const newData = data.filter((v, i) => i !== index);
             props.parentCallback(newData);
@@ -85,13 +119,13 @@ const Square = (
                         ? `repeating-linear-gradient(
                     45deg,
                     ${props.color},
-                    ${props.color} 3px,
-                    #fff 3px,
-                    #fff 6px
+                    ${props.color} 4px,
+                    #fff 4px,
+                    #fff 8px
                   )`
                         : `${props.color}`
                     : "",
-                border: `1px ${isInactivePeriod ? "dashed" : "solid"} ${
+                border: `2px ${isInactivePeriod ? "dashed" : "solid"} ${
                     props.color
                 }`,
             }}
@@ -221,7 +255,6 @@ const Table = (
                     ></TableBody>
                 </tbody>
             </table>
-            {JSON.stringify(props.data)}
         </>
     );
 };
@@ -334,6 +367,87 @@ const AddProject = (props: AddProjectProps) => {
         }, 2500);
     };
 
+    const deleteProject = () => {
+        const data = JSON.parse(
+            window.localStorage.getItem("data") || ""
+        ) as Array<OneDayProgress>;
+
+        if (projectType === "progress") {
+            let projectExists = false;
+            if (!projectName) {
+                setInfoMessageType("error");
+                setInfoMessage("Project name cannot be empty.");
+                return;
+            }
+            if (projectName.length > 25) {
+                setInfoMessageType("error");
+                setInfoMessage(
+                    "Project name cannot be more than 25 characters long."
+                );
+                return;
+            }
+            for (let i of data) {
+                if (i.name === projectName) projectExists = true;
+            }
+            if (!projectExists) {
+                setInfoMessageType("error");
+                setInfoMessage("Project doesn't exist.");
+                return;
+            }
+            if (projectExists) {
+                props.parentCallback(
+                    data.filter((v) => v.name !== projectName)
+                );
+
+                setInfoMessageType("success");
+                setInfoMessage("Project has been deleted.");
+            }
+        } else {
+            if (!vacationStart) {
+                setInfoMessageType("error");
+                setInfoMessage("Start date cannot be empty.");
+                return;
+            }
+            if (!vacationEnd) {
+                setInfoMessageType("error");
+                setInfoMessage("End date cannot be empty.");
+                return;
+            }
+            if (!new Date(vacationStart).getTime()) {
+                setInfoMessageType("error");
+                setInfoMessage("Invalid start date.");
+                return;
+            }
+            if (!new Date(vacationEnd).getTime()) {
+                setInfoMessageType("error");
+                setInfoMessage("Invalid end date.");
+                return;
+            }
+            if (
+                new Date(vacationEnd).getTime() <
+                new Date(vacationStart).getTime()
+            ) {
+                setInfoMessageType("error");
+                setInfoMessage("End date cannot be before the start date.");
+                return;
+            }
+            props.parentCallback(
+                data.filter(
+                    (v) =>
+                        new Date(v.startDate || 0).getTime() !==
+                        new Date(vacationStart).getTime()
+                )
+            );
+        }
+
+        setInfoMessageType("success");
+
+        setTimeout(() => {
+            setInfoMessage("");
+            setInfoMessageType("success");
+        }, 2500);
+    };
+
     return (
         <>
             <div className="AddData">
@@ -377,6 +491,7 @@ const AddProject = (props: AddProjectProps) => {
                     />
                 </div>
                 <button onClick={addProject}>Add</button>
+                <button onClick={deleteProject}>Delete</button>
             </div>
             <div className={"infoMessage" + infoMessageType}>{infoMessage}</div>
         </>
