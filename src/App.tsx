@@ -189,7 +189,11 @@ const TableBody = (
         let rowIndex = 0;
 
         projectColors.forEach((value, key) => {
-            let row = [<td key={key}>{key}</td>];
+            let row = [
+                <td key={key} style={{ borderRight: `2px solid ${value}` }}>
+                    {key}
+                </td>,
+            ];
             const dates = projectDates.get(key);
 
             for (let i = 1; i <= props.noOfDays; i++) {
@@ -364,7 +368,7 @@ const AddProject = (props: AddProjectProps) => {
         setTimeout(() => {
             setInfoMessage("");
             setInfoMessageType("success");
-        }, 2500);
+        }, 5000);
     };
 
     const deleteProject = () => {
@@ -445,7 +449,7 @@ const AddProject = (props: AddProjectProps) => {
         setTimeout(() => {
             setInfoMessage("");
             setInfoMessageType("success");
-        }, 2500);
+        }, 5000);
     };
 
     return (
@@ -508,7 +512,7 @@ const CopyDataToClipboard = () => {
 
         setTimeout(() => {
             setCopied(false);
-        }, 2500);
+        }, 5000);
     };
 
     return (
@@ -516,7 +520,7 @@ const CopyDataToClipboard = () => {
             onClick={copyData}
             className={"CopyButton " + copied ? "copied" : "notcopied"}
         >
-            {copied ? "Data Has Been Copied" : "Copy Data To Clipboard"}
+            {copied ? "Copied " : "Copy Data"}
         </button>
     );
 };
@@ -560,23 +564,35 @@ const App = () => {
 
     return (
         <div className="App">
-            <div>
-                <div>{new Date(year, month, 0).toLocaleDateString()}</div>
-                <button onClick={decrementMonth}>Previous Month</button>
-                <button onClick={incrementMonth}>Next Month</button>
+            <div className="TableDate">
+                {new Date(year, month, 0).toLocaleString("default", {
+                    month: "long",
+                }) +
+                    " " +
+                    year}
             </div>
-            <Table
-                month={month}
-                year={year}
-                noOfDays={daysInMonth(month, year)}
-                data={data}
-                parentCallback={updateData}
-            ></Table>
-            <div className="PageHeader">
+            <div className="TableContainer">
+                <button className="TableButton" onClick={decrementMonth}>
+                    {"Previous"}
+                </button>
+                <div className="Table">
+                    <Table
+                        month={month}
+                        year={year}
+                        noOfDays={daysInMonth(month, year)}
+                        data={data}
+                        parentCallback={updateData}
+                    ></Table>
+                </div>
+                <button className="TableButton" onClick={incrementMonth}>
+                    {"Next"}
+                </button>
+            </div>
+            <div className="AdditionalTools">
                 <AddProject parentCallback={updateData}></AddProject>
                 <CopyDataToClipboard></CopyDataToClipboard>
             </div>
-            <h6>
+            <h6 className="warning">
                 Warning, deleting cookies will delete all of the data in here,
                 so keep that in mind.
             </h6>
