@@ -15,10 +15,6 @@ type OneDayProgress = {
     color?: string;
 };
 
-// 3 hours 20 minutes
-// Add names to vacationss
-// ADD a way to delete projects and vacations
-
 const daysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();
 };
@@ -46,6 +42,7 @@ const Square = (
             projectName: string;
         }
 ) => {
+    const [isInactivePeriod, setIsInactivePeriod] = useState(false);
     const activateSquare = () => {
         const data = props.data;
         let index = 0;
@@ -83,8 +80,20 @@ const Square = (
             onClick={activateSquare}
             className={`square_${props.active ? "active" : "inactive"}`}
             style={{
-                backgroundColor: props.active ? `#${props.color}` : "",
-                border: `1px solid #${props.color}`,
+                background: props.active
+                    ? isInactivePeriod
+                        ? `repeating-linear-gradient(
+                    45deg,
+                    ${props.color},
+                    ${props.color} 3px,
+                    #fff 3px,
+                    #fff 6px
+                  )`
+                        : `${props.color}`
+                    : "",
+                border: `1px ${isInactivePeriod ? "dashed" : "solid"} ${
+                    props.color
+                }`,
             }}
         ></div>
     );
@@ -148,7 +157,6 @@ const TableBody = (
         projectColors.forEach((value, key) => {
             let row = [<td key={key}>{key}</td>];
             const dates = projectDates.get(key);
-            console.log("dates", dates);
 
             for (let i = 1; i <= props.noOfDays; i++) {
                 row.push(
@@ -181,10 +189,6 @@ const TableBody = (
         });
 
         setRows(rowees.map((i, ind) => <tr key={ind + "rowee"}>{i}</tr>));
-
-        console.log(projectColors);
-        console.log(vacations);
-        console.log("rowees", rowees);
     }, [
         props.data,
         props.noOfDays,
@@ -226,7 +230,8 @@ type AddProjectProps = {
     parentCallback: (data: OneDayProgress[]) => void;
 };
 
-const randomColor = () => Math.floor(Math.random() * 16777215).toString(16);
+const randomColor = () =>
+    "#" + Math.floor(Math.random() * 16777215).toString(16);
 
 const AddProject = (props: AddProjectProps) => {
     const [projectName, setProjectName] = useState<string>("");
@@ -337,7 +342,7 @@ const AddProject = (props: AddProjectProps) => {
                     name="type"
                 >
                     <option value="progress">Project</option>
-                    <option value="vacation">Empty Period</option>
+                    <option value="vacation">Inactive Period</option>
                 </select>
                 <div
                     className="ProjectInput"
@@ -410,12 +415,6 @@ const App = () => {
         const data = window.localStorage.getItem("data");
         if (!data) window.localStorage.setItem("data", JSON.stringify([]));
         setData(
-            JSON.parse(
-                window.localStorage.getItem("data") || "[]"
-            ) as OneDayProgress[]
-        );
-
-        console.log(
             JSON.parse(
                 window.localStorage.getItem("data") || "[]"
             ) as OneDayProgress[]
