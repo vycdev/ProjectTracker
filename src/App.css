@@ -20,7 +20,7 @@
 
 .TableButton {
 	background-color:#fff;
-  border: 2px solid #2a52bf;  
+  border: 2px solid #4365c2;  
 	border-radius:3px;
 	display:inline-block;
 	cursor:pointer;
@@ -62,21 +62,26 @@
 .AdditionalTools input {
   width: 250px;
   height: 20px;
-  border: 2px solid #2a52bf;
+  border: 2px solid #4365c2 ;
   border-radius: 4px;
 }
 .AdditionalTools select {
   width: 120px;
   height: 26px;
-  border: 2px solid #2a52bf;
+  border: 2px solid #4365c2;
   border-radius: 4px;
 }
 .AdditionalTools button {
   width: 120px;
   height: 26px;
   background-color: #fff;
-  border: 2px solid #2a52bf;
+  border: 2px solid #2abf9f;
   border-radius: 4px;
+}
+.AdditionalTools button:hover {
+  position:relative;
+	top:1px;
+  cursor: pointer;
 }
 
 .AddData {
@@ -86,7 +91,8 @@
 
 .infoMessagesuccess {
   color: rgb(79, 216, 79);
-
+  position: absolute;
+  top: 20px;
 }
 .infoMessageerror{
   color: rgb(255, 102, 0);
@@ -98,28 +104,20 @@
   color: rgb(255, 115, 0);
   text-align: center;
 }
-
+.square_inactive,
 .square_active {
-  width: 25px;
-  height: 25px;
+  width: 26px;
+  height: 26px;
   border-radius: 4px;
 }
-.square_inactive:hover {
-  cursor: pointer;
-  position:relative;
-	top:1px;
-}
+
+.square_inactive:hover,
 .square_active:hover {
   cursor: pointer;
 	position:relative;
 	top:1px;
 }
 
-.square_inactive {
-  width: 25px;
-  height: 25px;
-  border-radius: 4px;
-}
 
 th {
   width: 29px;
